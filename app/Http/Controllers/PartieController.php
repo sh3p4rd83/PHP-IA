@@ -2,64 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PartieRequest;
+use App\Http\Resources\PartieResource;
 use App\Models\Partie;
 use Illuminate\Http\Request;
 
 class PartieController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function createGame(PartieRequest $request) : PartieResource
     {
-        //
+        $bateaux = array();
+        $bateaux["porte-avions"] = 'test';
+        $this->placerBateauxAleatoire();
+
+        $request['bateaux'] = $board;
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function placerBateauxAleatoire()
     {
-        //
-    }
+        $board = array_fill(1, 10, array_fill(1, 10, -1));
+        $bateaux = array();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Partie $partie)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Partie $partie)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Partie $partie)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Partie $partie)
-    {
-        //
+        for ($i = 5; $i > 1; $i--)
+        {
+            $rndLine = array_rand($board);
+            $rndClm = array_rand($board[$rndLine]);
+            dd($rndLine . ' ' . $rndClm);
+        }
     }
 }

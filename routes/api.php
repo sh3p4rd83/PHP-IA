@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MissileController;
 use App\Http\Controllers\PartieController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,12 @@ Route::prefix('/battleship-ia/parties')
     ->controller(PartieController::class)
     ->group(function () {
         Route::post('/', 'createGame');
-        Route::post('/{id}/missiles', 'fireMissile');
-        Route::put('/{id}/missiles', 'reponseMissile');
         Route::delete('/{id}', 'deleteGame');
+    });
+
+Route::prefix('/battleship-ia/parties/{id}')
+    ->controller(MissileController::class)
+    ->group(function () {
+        Route::post('/', 'fireMissile');
+        Route::put('/', 'reponseMissile');
     });
