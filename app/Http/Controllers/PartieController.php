@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class PartieController extends Controller
 {
-    public function createGame(PartieRequest $request) : PartieResource
+    public function createGame(PartieRequest $request): PartieResource
     {
         $bateaux = array();
         $bateaux["porte-avions"] = 'test';
@@ -20,14 +20,69 @@ class PartieController extends Controller
 
     public function placerBateauxAleatoire()
     {
-        $board = array_fill(1, 10, array_fill(1, 10, -1));
-        $bateaux = array();
+        $positions = array();
+        $positions = array_merge($positions,  $this->genererBateau($positions, 5));
+        $positions = array_merge($positions,  $this->genererBateau($positions, 4));
+        $positions = array_merge($positions,  $this->genererBateau($positions, 3));
+        $positions = array_merge($positions,  $this->genererBateau($positions, 3));
+        $positions = array_merge($positions,  $this->genererBateau($positions, 2));
 
-        for ($i = 5; $i > 1; $i--)
-        {
-            $rndLine = array_rand($board);
-            $rndClm = array_rand($board[$rndLine]);
-            dd($rndLine . ' ' . $rndClm);
+        $bateaux = array();
+        $bateaux['Porte-Avions'] = array_slice($positions, 0, 5);
+        $bateaux['Cuirassé'] = array_slice($positions, 5, 4);
+        $bateaux['Destroyer'] = array_slice($positions, 9, 3);
+        $bateaux['Sous-marin'] = array_slice($positions, 12, 3);
+        $bateaux['Patrouilleur'] = array_slice($positions, 15, 2);
+
+
+        dd($bateaux);
+    }
+
+    private function genererBateau($arr, $taille) : array | bool
+    {
+        $newBoat = array();
+
+        do {
+            $pos = $this->getRandomPosition();
+        } while (in_array($pos, $arr));
+
+        array_push($newBoat, $pos);
+        $sens = rand(1, 2);
+        for ($j = 1; $j < $taille; $j++) {
+            if ($sens == 1) {
+                $l = ord($pos[0]);
+                $e = substr($pos, 1);
+                if (!in_array(chr($l + $j) . $e, $arr) && $l + $j < 75) {
+                    array_push($newBoat, chr($l + $j) . $e);
+                } elseif (!in_array(chr($l + ($j - $taille) ) . $e, $arr) && $l - $j > 64) {
+                    array_push($newBoat, chr($l + ($j - $taille)) . $e);
+                } else
+                {
+                    $newBoat = $this->genererBateau($arr, $taille);
+                    break;
+                }
+            } else {
+                $c = intval(substr($pos, 2));
+                $e = substr($pos, 0, 2);
+                if (!in_array($e . $c + $j, $arr) && $c + $j < 11) {
+                    array_push($newBoat, $e . $c + $j);
+                } elseif (!in_array($e . $c - $j, $arr) && $c - $j > 11) {
+                    array_push($newBoat, $e . $c - $j);
+                } else
+                {
+                    $newBoat = $this->genererBateau($arr, $taille);
+                    break;
+                }
+            }
         }
+
+        return $newBoat;
+    }
+
+    private function getRandomPosition(): string
+    {
+        $clm = chr(rand(65, 74));
+        $line = rand(1, 10);
+        return $clm . '-' . $line;
     }
 }
