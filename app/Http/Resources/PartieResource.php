@@ -14,6 +14,11 @@ class PartieResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'adversaire' => $this->adversaire,
+            'bateaux' => $this->bateaux,
+            'created_at' => $this->created_at
+        ];
     }
 }

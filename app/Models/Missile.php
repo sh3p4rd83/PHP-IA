@@ -12,6 +12,6 @@ class Missile extends Model
 
     public function partie() : BelongsTo
     {
-        return $this->belongsTo(Partie::class);
+        return $this->belongsTo(Partie::class, 'partie_id');
     }
 }

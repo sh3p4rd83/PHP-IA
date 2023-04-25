@@ -22,7 +22,9 @@ class PartieRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'adversaire' => 'required'
         ];
     }
+
+
 }

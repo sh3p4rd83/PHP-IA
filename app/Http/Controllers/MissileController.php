@@ -2,64 +2,189 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MissileRequest;
+use App\Http\Resources\MissileResource;
 use App\Models\Missile;
+use App\Models\Partie;
 use Illuminate\Http\Request;
 
 class MissileController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function fireMissile(MissileRequest $request): MissileResource
     {
-        //
+        $shot = $this->findBestShot($request->partie);
+        return new MissileResource($request);
+    }
+
+    public function reponseMissile(MissileRequest $request, Missile $missile): MissileResource
+    {
+        dd();
+    }
+
+    private function findBestShot($partieId): string
+    {
+        $possibleSpot = $this->evaluatePossibleSpot($partieId);
+        $incompatibleLocations = $this->evaluateIncompatibleSpot();
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Permet de retourner l'emplacement possible de tout les bateaux encore actif.
+     *
+     * @param $partieId int l'ID de la partie, nécessaire pour retrouver les missiles déja tirés
+     * @return array un array d'arrays de positions.
      */
-    public function create()
+    private function evaluatePossibleSpot($partieId): array
     {
-        //
+        $possibleSpot = array();
+        $playedShots = $this->getPlayedShots($partieId);
+
+        foreach ($this->getRemainingShips($partieId) as $ship) {
+            $possibleSpot[] = $ship;
+            for ($l = 65; $l < 75; $l++) {
+                for ($c = 1; $c < 11; $c++) {
+                    $boatLength = $this->getBoatSize($ship);
+                    // les boucles permettent l'isolation d'un sens, pour permettre d'exclure uniquement une seule orientation.
+                    // Vérification de l'implantation d'un bateau en position verticale
+                    while (true) {
+                        if ($l + $boatLength - 1 > 74) {
+                            break;
+                        }
+                        for ($b = 0; $b < $boatLength; $b++) {
+                            if (in_array($this->intToPos($l + $b, $c), $playedShots)) {
+                                break 2;
+                            }
+                        }
+                        $possibleSpot[] = $this->concatBoat($l, $c, 1, $boatLength);
+                        break;
+                    }
+                    // Vérification de l'implantation d'un bateau en position horizontale
+                    while (true) {
+                        if ($c + $boatLength - 1 > 10) {
+                            break;
+                        }
+                        for ($b = 0; $b < $boatLength; $b++) {
+                            if (in_array($this->intToPos($l, $c + $b), $playedShots)) {
+                                break 2;
+                            }
+                        }
+                        $possibleSpot[] = $this->concatBoat($l, $c, 2, $boatLength);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $possibleSpot;
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Permet la concatenation des positions des bateaux
+     *
+     * @param $l int la ligne du bateau, convertie en char
+     * @param $c int la colonne du bateau
+     * @param $s int le sens du bateau, 1 pour Vertical, 2 pour horizontal
+     * @param $b int la longueur du bateau
+     * @return array un array de positions pour un bateau a un emplacement
      */
-    public function store(Request $request)
+    private function concatBoat($l, $c, $s, $b) : array
     {
-        //
+        $boat = array();
+        if ($s == 1) {
+            for ($i = 0; $i < $b; $i++)
+            {
+                $boat[] = $this->intToPos($l + $i, $c);
+            }
+        } else {
+            for ($i = 0; $i < $b; $i++)
+            {
+                $boat[] = $this->intToPos($l, $c + $i);
+            }
+        }
+        return $boat;
     }
 
     /**
-     * Display the specified resource.
+     * Transforme des positions en string
+     *
+     * @param $l int la ligne, de A a J
+     * @param $c int la colonne, de 1 a 10
+     * @return string la position traduite
      */
-    public function show(Missile $missile)
+    private function intToPos($l, $c): string
     {
-        //
+        return chr($l) . '-' . $c;
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Retourne la longueur d'un bateau
+     *
+     * @param $boat string le nom du bateau
+     * @return int sa longueur.
      */
-    public function edit(Missile $missile)
+    private function getBoatSize($boat): int
     {
-        //
+        $size = 0;
+        switch ($boat) {
+            case ('porte-avions'):
+                $size = 5;
+                break;
+            case ('cuirasse'):
+                $size = 4;
+                break;
+            case ('sous-marin'):
+            case ('destroyer'):
+                $size = 3;
+                break;
+            default:
+                $size = 2;
+                break;
+        }
+
+        return $size;
     }
 
     /**
-     * Update the specified resource in storage.
+     * Va chercher et retourne l'ensemble des coups qui ont déjà été joués
+     *
+     * @param $partieId integer la partie concernée
+     * @return array un array de coups joués
      */
-    public function update(Request $request, Missile $missile)
+    private function getPlayedShots($partieId): array
     {
-        //
+        $partie = Partie::all()->where('id', $partieId);
+        $missiles = Missile::whereBelongsTo($partie)->pluck('coordonnées')->toArray();
+
+        return $missiles;
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Cherche dans les coups joués pour les bateaux qui n'ont pas été coulés.
+     *
+     * @param $partieId integer la partie concernée
+     * @return array un array de bateau
      */
-    public function destroy(Missile $missile)
+    private function getRemainingShips($partieId): array
     {
-        //
+        $bateauxRestants = array();
+        $partie = Partie::all()->where('id', $partieId);
+        $missiles = array(Missile::whereBelongsTo($partie)->pluck('resultat'));
+
+        if (!in_array('2', $missiles)) {
+            $bateauxRestants[] = 'porte-avions';
+        }
+        if (!in_array('3', $missiles)) {
+            $bateauxRestants[] = 'cuirasse';
+        }
+        if (!in_array('4', $missiles)) {
+            $bateauxRestants[] = 'destroyer';
+        }
+        if (!in_array('5', $missiles)) {
+            $bateauxRestants[] = 'sous-marin';
+        }
+        if (!in_array('6', $missiles)) {
+            $bateauxRestants[] = 'patrouilleur';
+        }
+
+        return $bateauxRestants;
     }
 }

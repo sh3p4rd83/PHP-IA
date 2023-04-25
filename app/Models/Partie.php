@@ -11,12 +11,21 @@ class Partie extends Model
 {
     use HasFactory;
 
-    public function missiles() : HasMany
+    protected $fillable = [
+        'adversaire',
+        'bateaux'
+    ];
+
+    protected $hidden = [
+        'updated_at'
+    ];
+
+    public function missiles(): HasMany
     {
         return $this->hasMany(Missile::class);
     }
 
-    public function users() : BelongsTo
+    public function users(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

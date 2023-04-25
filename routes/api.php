@@ -24,10 +24,10 @@ Route::prefix('/battleship-ia/parties')
     ->controller(PartieController::class)
     ->group(function () {
         Route::post('/', 'createGame');
-        Route::delete('/{id}', 'deleteGame');
+        Route::delete('/{partie}', 'deleteGame');
     });
 
-Route::prefix('/battleship-ia/parties/{id}')
+Route::prefix('/battleship-ia/parties/{partie}/missiles')
     ->controller(MissileController::class)
     ->group(function () {
         Route::post('/', 'fireMissile');
