@@ -13,6 +13,7 @@ class MissileController extends Controller
     public function fireMissile(MissileRequest $request): MissileResource
     {
         $shot = $this->findBestShot($request->partie);
+        dd($shot);
         return new MissileResource($request);
     }
 
@@ -24,7 +25,8 @@ class MissileController extends Controller
     private function findBestShot($partieId): string
     {
         $possibleSpot = $this->evaluatePossibleSpot($partieId);
-        $incompatibleLocations = $this->evaluateIncompatibleSpot();
+        $bestSpots =  $this->getFrequencies($possibleSpot);
+        return $bestSpots[array_rand($bestSpots)];
     }
 
     /**
@@ -36,10 +38,10 @@ class MissileController extends Controller
     private function evaluatePossibleSpot($partieId): array
     {
         $possibleSpot = array();
-        $playedShots = $this->getPlayedShots($partieId);
+        $playedShots = $this->getMissedShots($partieId);
 
         foreach ($this->getRemainingShips($partieId) as $ship) {
-            $possibleSpot[] = $ship;
+            $possibleSpot[$ship] = array();
             for ($l = 65; $l < 75; $l++) {
                 for ($c = 1; $c < 11; $c++) {
                     $boatLength = $this->getBoatSize($ship);
@@ -54,7 +56,8 @@ class MissileController extends Controller
                                 break 2;
                             }
                         }
-                        $possibleSpot[] = $this->concatBoat($l, $c, 1, $boatLength);
+                        $possibleSpot[$ship][] = $this->concatBoat($l, $c, 1, $boatLength);
+
                         break;
                     }
                     // Vérification de l'implantation d'un bateau en position horizontale
@@ -67,7 +70,7 @@ class MissileController extends Controller
                                 break 2;
                             }
                         }
-                        $possibleSpot[] = $this->concatBoat($l, $c, 2, $boatLength);
+                        $possibleSpot[$ship][] = $this->concatBoat($l, $c, 2, $boatLength);
                         break;
                     }
                 }
@@ -75,6 +78,58 @@ class MissileController extends Controller
         }
 
         return $possibleSpot;
+    }
+
+    /**
+     * Grosse fonction, vient chercher la fréquence a laquelle un emplacement est le probable de contenir un bateau.
+     * Pour ca, on vient passer dans la liste de chaque emplacement de chaque bateau, que l'on compare avec la position
+     * possible de tout les autres bateaux, et si il y a un "overlap", on vient passer ce type de configuration.
+     * Cela permet de raffiner les probabilités et ainsi d'augmenter les zones pouvant être considérés comme étant des
+     * "bons coups a tirer".
+     * Dans le cas où il ne reste qu'un bateau, il ne se compare pas a lui même, il vient chercher les zones ayant la
+     * plus haute probabilité de toucher.
+     *
+     * @param $possibleSpot array la liste des emplacements de chaque bateaux.
+     * @return array Un array de la fréquence des bateaux.
+     */
+    private function getFrequencies($possibleSpot): array
+    {
+        $locations = array();
+        $data = 0;
+        foreach ($possibleSpot as $ship) {
+            foreach ($ship as $shipLocation) {
+                if (count($possibleSpot) == 1) {
+                    foreach ($shipLocation as $spot) {
+                        if (!array_key_exists($spot, $locations)) {
+                            $locations[$spot] = 1;
+                        } else {
+                            $locations[$spot]++;
+                        }
+                        $data++;
+                    }
+                } else {
+                    foreach ($possibleSpot as $otherShip) {
+                        if ($otherShip != $ship) {
+                            foreach ($otherShip as $otherShipLocation) {
+                                foreach ($otherShipLocation as $spot) {
+                                    if (!in_array($spot, $shipLocation)) {
+                                        if (!array_key_exists($spot, $locations)) {
+                                            $locations[$spot] = 1;
+                                        } else {
+                                            $locations[$spot]++;
+                                        }
+                                        $data++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $frequencies = array_map(fn($value) => round(($value * 100 / $data), 4), $locations);
+
+        return array_keys($frequencies, max($frequencies));
     }
 
     /**
@@ -86,17 +141,15 @@ class MissileController extends Controller
      * @param $b int la longueur du bateau
      * @return array un array de positions pour un bateau a un emplacement
      */
-    private function concatBoat($l, $c, $s, $b) : array
+    private function concatBoat($l, $c, $s, $b): array
     {
         $boat = array();
         if ($s == 1) {
-            for ($i = 0; $i < $b; $i++)
-            {
+            for ($i = 0; $i < $b; $i++) {
                 $boat[] = $this->intToPos($l + $i, $c);
             }
         } else {
-            for ($i = 0; $i < $b; $i++)
-            {
+            for ($i = 0; $i < $b; $i++) {
                 $boat[] = $this->intToPos($l, $c + $i);
             }
         }
@@ -149,10 +202,10 @@ class MissileController extends Controller
      * @param $partieId integer la partie concernée
      * @return array un array de coups joués
      */
-    private function getPlayedShots($partieId): array
+    private function getMissedShots($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
-        $missiles = Missile::whereBelongsTo($partie)->pluck('coordonnées')->toArray();
+        $missiles = Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray();
 
         return $missiles;
     }
@@ -167,21 +220,21 @@ class MissileController extends Controller
     {
         $bateauxRestants = array();
         $partie = Partie::all()->where('id', $partieId);
-        $missiles = array(Missile::whereBelongsTo($partie)->pluck('resultat'));
+        $missiles = Missile::whereBelongsTo($partie)->pluck('resultat')->toArray();
 
-        if (!in_array('2', $missiles)) {
+        if (!in_array(2, $missiles)) {
             $bateauxRestants[] = 'porte-avions';
         }
-        if (!in_array('3', $missiles)) {
+        if (!in_array(3, $missiles)) {
             $bateauxRestants[] = 'cuirasse';
         }
-        if (!in_array('4', $missiles)) {
+        if (!in_array(4, $missiles)) {
             $bateauxRestants[] = 'destroyer';
         }
-        if (!in_array('5', $missiles)) {
+        if (!in_array(5, $missiles)) {
             $bateauxRestants[] = 'sous-marin';
         }
-        if (!in_array('6', $missiles)) {
+        if (!in_array(6, $missiles)) {
             $bateauxRestants[] = 'patrouilleur';
         }
 
