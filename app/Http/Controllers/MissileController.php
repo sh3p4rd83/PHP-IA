@@ -25,8 +25,35 @@ class MissileController extends Controller
     private function findBestShot($partieId): string
     {
         $possibleSpot = $this->evaluatePossibleSpot($partieId);
-        $bestSpots =  $this->getFrequencies($possibleSpot);
+
+        $hits = $this->getHits($partieId);
+        if (count($hits) == 0) {
+            $bestSpots = $this->getFrequencies($possibleSpot);
+        } else {
+            $bestSpots = $this->getFrequencies($this->refineSpots($possibleSpot, $hits)) ;
+        }
+
         return $bestSpots[array_rand($bestSpots)];
+    }
+
+
+    private function refineSpots($possibleSpot, $hits): array
+    {
+        foreach ($possibleSpot as $name => $ship) {
+            foreach ($ship as $index => $shipLocation) {
+                if (count(array_intersect($shipLocation, $hits)) == 0) {
+                    unset($possibleSpot[$name][$index]);
+                }
+            }
+        }
+
+        return $possibleSpot;
+    }
+
+    private function getHits($partieId): array
+    {
+        $partie = Partie::all()->where('id', $partieId);
+        return Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray();
     }
 
     /**
@@ -90,7 +117,7 @@ class MissileController extends Controller
      * plus haute probabilité de toucher.
      *
      * @param $possibleSpot array la liste des emplacements de chaque bateaux.
-     * @return array Un array de la fréquence des bateaux.
+     * @return array Un array des meilleurs tirs possible.
      */
     private function getFrequencies($possibleSpot): array
     {
@@ -205,7 +232,7 @@ class MissileController extends Controller
     private function getMissedShots($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
-        $missiles = Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray();
+        $missiles = Missile::whereBelongsTo($partie)->where('resultat', 0)->pluck('coordonnées')->toArray();
 
         return $missiles;
     }
