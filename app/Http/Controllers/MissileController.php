@@ -10,9 +10,14 @@ use Illuminate\Http\Request;
 
 class MissileController extends Controller
 {
+    /**
+     * Tire un missile.
+     *
+     * @param MissileRequest $request La demande de tir venant d'une partie en cours.
+     * @return MissileResource La réponse de l'IA
+     */
     public function fireMissile(MissileRequest $request): MissileResource
     {
-        // self::searchUniqueShipPosition($request->partie);
         $shot = self::findBestShot($request->partie);
         dd($shot);
         return new MissileResource($request);
@@ -20,11 +25,13 @@ class MissileController extends Controller
 
     public function reponseMissile(MissileRequest $request, Missile $missile): MissileResource
     {
+        //self::searchUniqueShipPosition($request->partie);
         dd();
     }
 
     /**
      * Vient vérifier si un bateau est coulé, avec certitude, afin d'éviter de considerer comme coulé le mauvais bateau.
+     * Si une seule position pour un bateau coulé est possible, vient mettre a jour la BD.
      *
      * @param $partieId int La partie en cours.
      * @return void
@@ -64,18 +71,32 @@ class MissileController extends Controller
                     $possibleLocs[] = $possibleLoc;
                 }
             }
-            if (count($possibleLocs) == 1) {
+            if (isset($possibleLocs) && count($possibleLocs) == 1) {
                 self::updateSunkShips($possibleLocs[0], $partieId, self::getShipId($name));
             }
         }
     }
 
+    /**
+     * Met a jour la BD selon la position d'un bateau coulé.
+     *
+     * @param $shipPos array les positions du bateau
+     * @param $partieId int la partie en cours
+     * @param $sunkShipId int l'id du bateau coulé
+     * @return void
+     */
     private static function updateSunkShips($shipPos, $partieId, $sunkShipId)
     {
         $partie = Partie::all()->where('id', $partieId);
         Missile::whereBelongsTo($partie)->whereIn('coordonnées', $shipPos)->update(['resultat' => $sunkShipId]);
     }
 
+    /**
+     * Coeur de l'IA, fait les appels selon l'état actuel de la partie.
+     *
+     * @param $partieId int la partie concernée
+     * @return string une coordonnée aléatoire dans la liste des plus hautes probabilités de touches.
+     */
     private static function findBestShot($partieId): string
     {
         $remainingShip = self::getRemainingShips($partieId);
@@ -92,11 +113,19 @@ class MissileController extends Controller
     }
 
 
+    /**
+     * Vient rafiner les positions possible de chaque bateau selon les tirs qui ont déjà touché.
+     * Permet a l'IA de se concentrer uniquement sur la traque de bateaux endommagés.
+     *
+     * @param $possibleSpot array multidimensionnel des positions possible de chaque bateau
+     * @param $hits array des tirs qui ont touchés
+     * @return array multidimensionnel de positions rafinés pour chaque bateau.
+     */
     private static function refineSpots($possibleSpot, $hits): array
     {
         foreach ($possibleSpot as $name => $ship) {
             foreach ($ship as $index => $shipLocation) {
-                if (count(array_intersect($shipLocation, $hits)) == 0) {
+                if (count(array_intersect($shipLocation, $hits)) <= self::getBoatSize($name) - 2) {
                     unset($possibleSpot[$name][$index]);
                 }
             }
@@ -104,12 +133,24 @@ class MissileController extends Controller
         return $possibleSpot;
     }
 
+    /**
+     * Cherche dans une partie l'ensemble des tirs qui ont touchés.
+     *
+     * @param $partieId int la partie concernée
+     * @return array un array de coordonnées qui ont eu un hit.
+     */
     private static function getHits($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
         return Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray();
     }
 
+    /**
+     * Cherche dans une partie les bateaux qui ont déjà été coulés.
+     *
+     * @param $partieId int la partie concernée
+     * @return array un array des bateaux coulés.
+     */
     private static function getSunk($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
@@ -200,7 +241,6 @@ class MissileController extends Controller
             }
         }
         $frequencies = array_map(fn($value) => round(($value * 100 / $data), 4), $locations);
-
         return array_keys($frequencies, max($frequencies));
     }
 
@@ -313,6 +353,12 @@ class MissileController extends Controller
         return $bateauxRestants;
     }
 
+    /**
+     * Cherche et retourne le code de destruction d'un bateau suivant son nom
+     *
+     * @param $shipName string le nom du bateau
+     * @return int Son code de destruction
+     */
     private static function getShipId($shipName): int
     {
         switch ($shipName) {
