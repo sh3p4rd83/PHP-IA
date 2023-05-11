@@ -18,9 +18,12 @@ class MissileController extends Controller
      */
     public function fireMissile(MissileRequest $request): MissileResource
     {
-        $shot = self::findBestShot($request->partie);
-        dd($shot);
-        return new MissileResource($request);
+        $attributes = $request->validated();
+        $attributes["coordonnées"] = self::findBestShot($request->partie_id);
+        $attributes["partie_id"] = $request->partie_id;
+
+        $tir = Missile::create($attributes);
+        return new MissileResource($tir);
     }
 
     public function reponseMissile(MissileRequest $request, Missile $missile): MissileResource
@@ -106,7 +109,7 @@ class MissileController extends Controller
         if (count($hits) == 0) {
             $bestSpots = self::getFrequencies($possibleSpot);
         } else {
-            $bestSpots = self::getFrequencies(self::refineSpots($possibleSpot, $hits), $hits);
+            $bestSpots = self::getFrequencies(self::refineSpots($possibleSpot, $hits, $partieId), $hits);
         }
 
         return $bestSpots[array_rand($bestSpots)];
@@ -125,7 +128,7 @@ class MissileController extends Controller
     {
         foreach ($possibleSpot as $name => $ship) {
             foreach ($ship as $index => $shipLocation) {
-                if (count(array_intersect($shipLocation, $hits)) <= self::getBoatSize($name) - 2) {
+                if (count(array_intersect($shipLocation, $hits)) <= 0) {
                     unset($possibleSpot[$name][$index]);
                 }
             }
@@ -168,7 +171,7 @@ class MissileController extends Controller
     private static function evaluatePossibleSpot($partieId, $remainingShip): array
     {
         $possibleSpot = array();
-        $playedShots = self::getShots($partieId);
+        $playedShots = array_merge(self::getShots($partieId), self::getSunk($partieId)) ;
 
         foreach ($remainingShip as $ship) {
             $possibleSpot[$ship] = array();

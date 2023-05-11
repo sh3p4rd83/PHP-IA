@@ -14,6 +14,11 @@ class MissileRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        $this->merge(['partie_id' =>$this->route('partie_id')]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -22,7 +27,7 @@ class MissileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            "partie_id" => "required|exists:App\Models\Partie,id"
         ];
     }
 }

@@ -25,6 +25,4 @@ class PartieRequest extends FormRequest
             'adversaire' => 'required'
         ];
     }
-
-
 }

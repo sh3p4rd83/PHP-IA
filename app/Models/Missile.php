@@ -10,7 +10,13 @@ class Missile extends Model
 {
     use HasFactory;
 
-    public function partie() : BelongsTo
+    protected $fillable = [
+        'partie_id',
+        'coordonnées',
+        'resultat'
+    ];
+
+    public function partie(): BelongsTo
     {
         return $this->belongsTo(Partie::class, 'partie_id');
     }

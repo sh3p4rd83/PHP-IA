@@ -11,13 +11,15 @@ class PartieController extends Controller
 {
     public function createGame(PartieRequest $request): PartieResource
     {
-        $partie = Partie::create($request->validated());
-        $partie['bateaux'] = $this->placerBateauxAleatoire() ;
+        $attributes = $request->validated();
+        $attributes['bateaux'] = $this->placerBateauxAleatoire();
+
+        $partie = Partie::create($attributes);
 
         return new PartieResource($partie);
     }
 
-    public function placerBateauxAleatoire() : array
+    public function placerBateauxAleatoire() : string
     {
         $positions = array();
         $positions = array_merge($positions,  $this->genererBateau($positions, 5));
@@ -34,7 +36,7 @@ class PartieController extends Controller
         $bateaux['Patrouilleur'] = array_slice($positions, 15, 2);
 
 
-        return $bateaux;
+        return json_encode($bateaux);
     }
 
     private function genererBateau($arr, $taille) : array | bool

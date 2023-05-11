@@ -27,9 +27,9 @@ Route::prefix('/battleship-ia/parties')
         Route::delete('/{partie}', 'deleteGame');
     });
 
-Route::prefix('/battleship-ia/parties/{partie}/missiles')
+Route::prefix('/battleship-ia/parties/{partie_id}/missiles')
     ->controller(MissileController::class)
     ->group(function () {
         Route::post('/', 'fireMissile');
-        Route::put('/', 'reponseMissile');
+        Route::put('/{coordonnées}', 'reponseMissile');
     });
