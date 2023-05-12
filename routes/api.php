@@ -20,14 +20,14 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('/battleship-ia/parties')
+Route::prefix('battleship-ia/parties')
     ->controller(PartieController::class)
     ->group(function () {
         Route::post('/', 'createGame');
         Route::delete('/{partie}', 'deleteGame');
     });
 
-Route::prefix('/battleship-ia/parties/{partie_id}/missiles')
+Route::prefix('battleship-ia/parties/{partie_id}/missiles')
     ->controller(MissileController::class)
     ->group(function () {
         Route::post('/', 'fireMissile');

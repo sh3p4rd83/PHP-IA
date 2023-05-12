@@ -15,7 +15,7 @@ class MissileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "coordonnées" => $this->coordonnées,
+            "coordonnee" => $this->coordonnées,
             "resultat" => $this->resultat,
             "created_at" => $this->created_at
         ];

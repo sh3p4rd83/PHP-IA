@@ -6,6 +6,7 @@ use App\Http\Requests\MissileRequest;
 use App\Http\Resources\MissileResource;
 use App\Models\Missile;
 use App\Models\Partie;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MissileController extends Controller
@@ -14,11 +15,18 @@ class MissileController extends Controller
      * Tire un missile.
      *
      * @param MissileRequest $request La demande de tir venant d'une partie en cours.
-     * @return MissileResource La réponse de l'IA
+     * @return MissileResource|JsonResponse La réponse de l'IA
      */
-    public function fireMissile(MissileRequest $request): MissileResource
+    public function fireMissile(MissileRequest $request): MissileResource|JsonResponse
     {
         $attributes = $request->validated();
+        $partie = Partie::all()->where('id', $request->partie_id)->count();
+        if($partie == 0) {
+            return response()->json([
+                'message' => 'La ressource n’existe pas.'
+            ], 404);
+        }
+
         $attributes["coordonnées"] = self::findBestShot($request->partie_id);
         $attributes["partie_id"] = $request->partie_id;
 
