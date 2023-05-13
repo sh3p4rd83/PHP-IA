@@ -13,8 +13,12 @@ return new class extends Migration
     {
         Schema::create('parties', function (Blueprint $table) {
             $table->id();
-            // $table->unsignedBigInteger('user_id'); TODO: A voir avec les users
-            // $table->foreign('user_id')->references('id')->on('users');
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
             $table->text('adversaire');
             $table->json("bateaux")->nullable();
             $table->timestamps();

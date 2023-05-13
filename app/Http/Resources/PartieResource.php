@@ -17,7 +17,7 @@ class PartieResource extends JsonResource
         return [
             'id' => $this->id,
             'adversaire' => $this->adversaire,
-            'bateaux' => $this->bateaux,
+            'bateaux' => json_decode($this->bateaux, true),
             'created_at' => $this->created_at
         ];
     }

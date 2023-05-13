@@ -3,8 +3,10 @@
 namespace App\Policies;
 
 use App\Models\Missile;
+use App\Models\Partie;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Auth;
 
 class MissilePolicy
 {
@@ -27,17 +29,21 @@ class MissilePolicy
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user): bool
+    public function create(User $user, Partie $partie): Response
     {
-        //
+        return $user->id === $partie->user_id
+            ? Response::allow()
+            : Response::deny("Cette action n’est pas autorisée.");;
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Missile $missile): bool
+    public function update(User $user, Partie $partie): Response
     {
-        //
+        return $user->id === $partie->user_id
+            ? Response::allow()
+            : Response::deny("Cette action n’est pas autorisée.");
     }
 
     /**
@@ -45,7 +51,7 @@ class MissilePolicy
      */
     public function delete(User $user, Missile $missile): bool
     {
-        //
+        return false;
     }
 
     /**

@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('missiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger("partie_id");
-            $table->foreign("partie_id")->references("id")->on("parties");
+            $table->foreign("partie_id")
+                ->references("id")
+                ->on("parties")
+                ->onDelete("cascade");
             $table->string("coordonnées", 3);
             $table->unsignedInteger("resultat")->nullable();
             $table->timestamps();

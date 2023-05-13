@@ -8,24 +8,28 @@ use App\Models\Missile;
 use App\Models\Partie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MissileController extends Controller
 {
+
+
     /**
      * Tire un missile.
      *
      * @param MissileRequest $request La demande de tir venant d'une partie en cours.
      * @return MissileResource|JsonResponse La réponse de l'IA
      */
-    public function fireMissile(MissileRequest $request): MissileResource|JsonResponse
+    public function create(MissileRequest $request): MissileResource|JsonResponse
     {
-        $attributes = $request->validated();
-        $partie = Partie::all()->where('id', $request->partie_id)->count();
-        if($partie == 0) {
+        $partie = Partie::all()->where('id', $request->partie_id);
+        if ($partie->count() == 0) {
             return response()->json([
                 'message' => 'La ressource n’existe pas.'
             ], 404);
         }
+        $this->authorize('create', [Missile::class, $partie->first()]);
+        $attributes = $request->validated();
 
         $attributes["coordonnées"] = self::findBestShot($request->partie_id);
         $attributes["partie_id"] = $request->partie_id;
@@ -34,10 +38,49 @@ class MissileController extends Controller
         return new MissileResource($tir);
     }
 
-    public function reponseMissile(MissileRequest $request, Missile $missile): MissileResource
+    /**
+     * @param MissileRequest $request
+     * @param Missile $missile
+     * @return MissileResource|JsonResponse
+     */
+    public function update(MissileRequest $request): MissileResource|JsonResponse
     {
-        //self::searchUniqueShipPosition($request->partie);
-        dd();
+        $partie = Partie::all()->where('id', $request->partie_id);
+
+        if ($partie->count() == 0) {
+            return response()->json([
+                'message' => 'La ressource n’existe pas.'
+            ], 404);
+        }
+
+        $this->authorize('update', [Missile::class, $partie->first()]);
+
+        $attributes = $request->validate([
+            "resultat" => "required|integer|between:0,6",
+        ]);
+
+        if (Auth::user()->id != $partie->first()->user_id) {
+            return response()->json([
+                "message" => 'Cette action n\'est pas autorisée.'
+            ], 403);
+        }
+
+        $missile = Missile::whereBelongsTo($partie)
+            ->where('coordonnées', $request->coordonnées)
+            ->first();
+
+        if ($missile == null) {
+            return response()->json([
+                'message' => 'La ressource n’existe pas.'
+            ], 404);
+        }
+
+        $missile->resultat = $attributes["resultat"];
+        $missile->save();
+
+        self::searchUniqueShipPosition($request->partie_id);
+
+        return new MissileResource($missile);
     }
 
     /**
@@ -179,7 +222,7 @@ class MissileController extends Controller
     private static function evaluatePossibleSpot($partieId, $remainingShip): array
     {
         $possibleSpot = array();
-        $playedShots = array_merge(self::getShots($partieId), self::getSunk($partieId)) ;
+        $playedShots = array_merge(self::getShots($partieId), self::getSunk($partieId));
 
         foreach ($remainingShip as $ship) {
             $possibleSpot[$ship] = array();
