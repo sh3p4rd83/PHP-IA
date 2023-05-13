@@ -116,9 +116,9 @@ class MissileController extends Controller
             $hitNotSunk[] = 'patrouilleur';
         }
 
-        $positionsHitsNotSunk = self::evaluatePossibleSpot($partieId, $hitNotSunk);
-        $refineHitNotSunk = self::refineSpots($positionsHitsNotSunk, self::getSunk($partieId));
         $allHits = array_merge(self::getHits($partieId), self::getSunk($partieId));
+        $positionsHitsNotSunk = self::evaluatePossibleSpot($partieId, $hitNotSunk);
+        $refineHitNotSunk = self::refineSpots($positionsHitsNotSunk, $allHits);
 
         foreach ($refineHitNotSunk as $name => $ship) {
             foreach ($ship as $possibleLoc) {
@@ -197,7 +197,31 @@ class MissileController extends Controller
     private static function getHits($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
-        return Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray();
+
+        $unSunkPos = Missile::whereBelongsTo($partie)->whereIn('resultat', array(2, 3, 4, 5, 6))->pluck(
+            'resultat',
+            'coordonnées',
+        )->toArray();
+
+        $unSunk = array();
+
+        if(isset($unSunkPos[$key = array_search(2, $unSunkPos)]) && array_count_values($unSunkPos)[2] != 5) {
+            $unSunk[] = $key;
+        }
+        if(isset($unSunkPos[$key = array_search(3, $unSunkPos)]) && array_count_values($unSunkPos)[3] != 4) {
+            $unSunk[] = $key;
+        }
+        if(isset($unSunkPos[$key = array_search(4, $unSunkPos)]) && array_count_values($unSunkPos)[4] != 3) {
+            $unSunk[] = $key;
+        }
+        if(isset($unSunkPos[$key = array_search(5, $unSunkPos)]) && array_count_values($unSunkPos)[5] != 3) {
+            $unSunk[] = $key;
+        }
+        if(isset($unSunkPos[$key = array_search(6, $unSunkPos)]) && array_count_values($unSunkPos)[6] != 2) {
+            $unSunk[] = $key;
+        }
+
+        return array_merge(Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray(), $unSunk);
     }
 
     /**
@@ -209,9 +233,28 @@ class MissileController extends Controller
     private static function getSunk($partieId): array
     {
         $partie = Partie::all()->where('id', $partieId);
-        return Missile::whereBelongsTo($partie)->whereIn('resultat', array(2, 3, 4, 5, 6))->pluck(
-            'coordonnées'
+        $sunkPos = Missile::whereBelongsTo($partie)->whereIn('resultat', array(2, 3, 4, 5, 6))->pluck(
+            'resultat',
+            'coordonnées',
         )->toArray();
+
+        if(isset($sunkPos[$key = array_search(2, $sunkPos)]) && array_count_values($sunkPos)[2] != 5) {
+            unset($sunkPos[$key]);
+        }
+        if(isset($sunkPos[$key = array_search(3, $sunkPos)]) && array_count_values($sunkPos)[3] != 4) {
+            unset($sunkPos[$key]);
+        }
+        if(isset($sunkPos[$key = array_search(4, $sunkPos)]) && array_count_values($sunkPos)[4] != 3) {
+            unset($sunkPos[$key]);
+        }
+        if(isset($sunkPos[$key = array_search(5, $sunkPos)]) && array_count_values($sunkPos)[5] != 3) {
+            unset($sunkPos[$key]);
+        }
+        if(isset($sunkPos[$key = array_search(6, $sunkPos)]) && array_count_values($sunkPos)[6] != 2) {
+            unset($sunkPos[$key]);
+        }
+
+        return array_keys($sunkPos);
     }
 
     /**
