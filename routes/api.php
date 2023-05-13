@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MissileController;
 use App\Http\Controllers\PartieController;
 use Illuminate\Http\Request;

@@ -12,10 +12,14 @@ use Illuminate\Support\Facades\Auth;
 class PartieController extends Controller
 {
 
+    /**
+     * Création d'une nouvelle partie.
+     *
+     * @param PartieRequest $request La requete de la partie
+     * @return PartieResource Réponse Json de la nouvelle partie
+     */
     public function create(PartieRequest $request): PartieResource
     {
-        $this->authorize('create', Partie::class);
-
         $attributes = $request->validated();
         $bateaux = $this->placerBateauxAleatoire();
         $attributes['bateaux'] = json_encode($bateaux);
@@ -25,6 +29,13 @@ class PartieController extends Controller
         return new PartieResource($partie);
     }
 
+    /**
+     * Supprime une partie terminée.
+     *
+     * @param Request $request La partie concernée
+     * @return PartieResource|JsonResponse Une réponse json de validation de suppression|erreur d'autorisation
+     * @throws \Illuminate\Auth\Access\AuthorizationException Erreur d'autorisation
+     */
     public function destroy(Request $request): PartieResource|JsonResponse
     {
         $partie = Partie::all()->where('id', $request->partie_id);
@@ -42,6 +53,12 @@ class PartieController extends Controller
         return new PartieResource($partie);
     }
 
+    /**
+     * Génere une liste de positions aléatoire de bateaux, qui ne se croisent pas et ne sortent pas
+     * du tableau.
+     *
+     * @return array de bateaux comprenant chacun un array de positions.
+     */
     public function placerBateauxAleatoire() : array
     {
         $positions = array();
@@ -61,7 +78,14 @@ class PartieController extends Controller
         return $bateaux;
     }
 
-    private function genererBateau($arr, $taille): array|bool
+    /**
+     * Génere les positions pour un bateau. Recursif.
+     *
+     * @param $arr array les positions déjà occupées.
+     * @param $taille int la taille du bateau
+     * @return array un array de positions.
+     */
+    private function genererBateau($arr, $taille): array
     {
         $newBoat = array();
 
@@ -73,23 +97,23 @@ class PartieController extends Controller
         $sens = rand(1, 2);
         for ($j = 1; $j < $taille; $j++) {
             if ($sens == 1) {
-                $l = ord($pos[0]);
-                $e = substr($pos, 1);
-                if (!in_array(chr($l + $j) . $e, $arr) && $l + $j < 75) {
-                    array_push($newBoat, chr($l + $j) . $e);
-                } elseif (!in_array(chr($l + ($j - $taille)) . $e, $arr) && $l - $j > 64) {
-                    array_push($newBoat, chr($l + ($j - $taille)) . $e);
+                $line = ord($pos[0]);
+                $subPosition = substr($pos, 1);
+                if (!in_array(chr($line + $j) . $subPosition, $arr) && $line + $j < 75) {
+                    array_push($newBoat, chr($line + $j) . $subPosition);
+                } elseif (!in_array(chr($line + ($j - $taille)) . $subPosition, $arr) && $line - $j > 64) {
+                    array_push($newBoat, chr($line + ($j - $taille)) . $subPosition);
                 } else {
                     $newBoat = $this->genererBateau($arr, $taille);
                     break;
                 }
             } else {
-                $c = intval(substr($pos, 2));
-                $e = substr($pos, 0, 2);
-                if (!in_array($e . $c + $j, $arr) && $c + $j < 11) {
-                    array_push($newBoat, $e . $c + $j);
-                } elseif (!in_array($e . $c - $j, $arr) && $c - $j > 11) {
-                    array_push($newBoat, $e . $c - $j);
+                $col = intval(substr($pos, 2));
+                $subPosition = substr($pos, 0, 2);
+                if (!in_array($subPosition . $col + $j, $arr) && $col + $j < 11) {
+                    array_push($newBoat, $subPosition . $col + $j);
+                } elseif (!in_array($subPosition . $col - $j, $arr) && $col - $j > 11) {
+                    array_push($newBoat, $subPosition . $col - $j);
                 } else {
                     $newBoat = $this->genererBateau($arr, $taille);
                     break;
@@ -100,10 +124,15 @@ class PartieController extends Controller
         return $newBoat;
     }
 
+    /**
+     * Génere une position aléatoire du début de bateau.
+     *
+     * @return string Une position.
+     */
     private function getRandomPosition(): string
     {
-        $clm = chr(rand(65, 74));
+        $cln = chr(rand(65, 74));
         $line = rand(1, 10);
-        return $clm . '-' . $line;
+        return $cln . '-' . $line;
     }
 }

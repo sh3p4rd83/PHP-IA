@@ -39,9 +39,10 @@ class MissileController extends Controller
     }
 
     /**
-     * @param MissileRequest $request
-     * @param Missile $missile
-     * @return MissileResource|JsonResponse
+     * Met a jour une ressource selon la partie et la coordonnée.
+     *
+     * @param MissileRequest $request Le missile
+     * @return MissileResource|JsonResponse Une réponse json de réussite ou d'erreur.
      */
     public function update(MissileRequest $request): MissileResource|JsonResponse
     {
@@ -226,35 +227,35 @@ class MissileController extends Controller
 
         foreach ($remainingShip as $ship) {
             $possibleSpot[$ship] = array();
-            for ($l = 65; $l < 75; $l++) {
-                for ($c = 1; $c < 11; $c++) {
+            for ($line = 65; $line < 75; $line++) {
+                for ($col = 1; $col < 11; $col++) {
                     $boatLength = self::getBoatSize($ship);
                     // les boucles permettent l'isolation d'un sens, pour permettre d'exclure uniquement une seule orientation.
                     // Vérification de l'implantation d'un bateau en position verticale
                     while (true) {
-                        if ($l + $boatLength - 1 > 74) {
+                        if ($line + $boatLength - 1 > 74) {
                             break;
                         }
                         for ($b = 0; $b < $boatLength; $b++) {
-                            if (in_array(self::intToPos($l + $b, $c), $playedShots)) {
+                            if (in_array(self::intToPos($line + $b, $col), $playedShots)) {
                                 break 2;
                             }
                         }
-                        $possibleSpot[$ship][] = self::concatBoat($l, $c, 1, $boatLength);
+                        $possibleSpot[$ship][] = self::concatBoat($line, $col, 1, $boatLength);
 
                         break;
                     }
                     // Vérification de l'implantation d'un bateau en position horizontale
                     while (true) {
-                        if ($c + $boatLength - 1 > 10) {
+                        if ($col + $boatLength - 1 > 10) {
                             break;
                         }
                         for ($b = 0; $b < $boatLength; $b++) {
-                            if (in_array(self::intToPos($l, $c + $b), $playedShots)) {
+                            if (in_array(self::intToPos($line, $col + $b), $playedShots)) {
                                 break 2;
                             }
                         }
-                        $possibleSpot[$ship][] = self::concatBoat($l, $c, 2, $boatLength);
+                        $possibleSpot[$ship][] = self::concatBoat($line, $col, 2, $boatLength);
                         break;
                     }
                 }
@@ -301,22 +302,22 @@ class MissileController extends Controller
     /**
      * Permet la concatenation des positions des bateaux
      *
-     * @param $l int la ligne du bateau, convertie en char
-     * @param $c int la colonne du bateau
-     * @param $s int le sens du bateau, 1 pour Vertical, 2 pour horizontal
-     * @param $b int la longueur du bateau
+     * @param $line int la ligne du bateau, convertie en char
+     * @param $col int la colonne du bateau
+     * @param $orientation int le sens du bateau, 1 pour Vertical, 2 pour horizontal
+     * @param $boatlenght int la longueur du bateau
      * @return array un array de positions pour un bateau a un emplacement
      */
-    private static function concatBoat($l, $c, $s, $b): array
+    private static function concatBoat($line, $col, $orientation, $boatlenght): array
     {
         $boat = array();
-        if ($s == 1) {
-            for ($i = 0; $i < $b; $i++) {
-                $boat[] = self::intToPos($l + $i, $c);
+        if ($orientation == 1) {
+            for ($i = 0; $i < $boatlenght; $i++) {
+                $boat[] = self::intToPos($line + $i, $col);
             }
         } else {
-            for ($i = 0; $i < $b; $i++) {
-                $boat[] = self::intToPos($l, $c + $i);
+            for ($i = 0; $i < $boatlenght; $i++) {
+                $boat[] = self::intToPos($line, $col + $i);
             }
         }
         return $boat;
@@ -325,13 +326,13 @@ class MissileController extends Controller
     /**
      * Transforme des positions en string
      *
-     * @param $l int la ligne, de A a J
-     * @param $c int la colonne, de 1 a 10
+     * @param $line int la ligne, de A a J
+     * @param $col int la colonne, de 1 a 10
      * @return string la position traduite
      */
-    private static function intToPos($l, $c): string
+    private static function intToPos($line, $col): string
     {
-        return chr($l) . '-' . $c;
+        return chr($line) . '-' . $col;
     }
 
     /**
