@@ -350,7 +350,7 @@ class MissileController extends Controller
     }
 
     /**
-     * Grosse fonction, vient chercher la fréquence a laquelle un emplacement est le probable de contenir un bateau.
+     * Vient chercher la fréquence a laquelle un emplacement est le probable de contenir un bateau.
      * Pour ca, on vient passer dans la liste de chaque emplacement de chaque bateau, que l'on compare avec la position
      * possible de tout les autres bateaux, et si il y a un "overlap", on vient passer ce type de configuration.
      * Cela permet de raffiner les probabilités et ainsi d'augmenter les zones pouvant être considérés comme étant des
