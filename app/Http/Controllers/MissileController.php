@@ -290,7 +290,7 @@ class MissileController extends Controller
                     }
                     // Vérification de l'implantation d'un bateau en position horizontale
                     while (true) {
-                        if ($col + $boatLength - 1 > 10) {
+                        if ($col + $boatLength - 1 >= 10) {
                             break;
                         }
                         for ($b = 0; $b < $boatLength; $b++) {
