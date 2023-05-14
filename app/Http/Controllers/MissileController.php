@@ -161,7 +161,7 @@ class MissileController extends Controller
         if (count($hits) == 0) {
             $bestSpots = self::getFrequencies($possibleSpot);
         } else {
-            $bestSpots = self::getFrequencies(self::refineSpots($possibleSpot, $hits, $partieId), $hits);
+            $bestSpots = self::getFrequencies(self::refineSpots($possibleSpot, $hits), $hits);
         }
 
         return $bestSpots[array_rand($bestSpots)];
@@ -178,9 +178,48 @@ class MissileController extends Controller
      */
     private static function refineSpots($possibleSpot, $hits): array
     {
+        // Variable définissant la meilleure comparaison hits/position
+        $bestIntersect = 0;
+
+        // Ces boucles viennent comparer les positions des bateaux avec les zones touchés
+        foreach ($possibleSpot as $name => $ship) {
+            $shipBestSpot = array();
+            $shipBestSpot[$name] = array();
+            foreach ($ship as $shipLocation) {
+                // Variable définissant le nombre de hits dans chaque position de bateaux
+                $similar = count(array_intersect($shipLocation, $hits));
+
+                // Initialise la variable si elle est vide
+                if (!isset($shipBestSpot[$name][0])) {
+                    $shipBestSpot[$name][0] = $shipLocation;
+                } else {
+                    // Si le nombre de hits sur une position est supérieur aux précédents, vide le bateau de ses positions
+                    // et reinitialise avec la nouvelle position
+                    if ($similar > count(array_intersect($shipBestSpot[$name][0], $hits))) {
+                        unset($shipBestSpot[$name]);
+                        // Change la meilleure comparaison si elle est supérieure
+                        if ($bestIntersect < $similar) {
+                            $bestIntersect = $similar;
+                        }
+                        $shipBestSpot[$name][0] = $shipLocation;
+                    } else {
+                        // Si le nombre de hits sur une position est le même que les précedents, l'ajoute
+                        if ($similar == count(array_intersect($shipBestSpot[$name][0], $hits))) {
+                            array_push($shipBestSpot[$name], $shipLocation);
+                        }
+                    }
+                }
+            }
+            // Vient écraser la liste des positions possible avec une nouvelle liste, plus précise.
+            $possibleSpot[$name] = $shipBestSpot[$name];
+        }
+
+        // Ces boucles viennent enlever les cas dont un bateau n'a qu'un hit possible, mais que le meilleur hitCount est
+        // supérieur
         foreach ($possibleSpot as $name => $ship) {
             foreach ($ship as $index => $shipLocation) {
-                if (count(array_intersect($shipLocation, $hits)) <= 0) {
+                $similar = count(array_intersect($shipLocation, $hits));
+                if ($similar != $bestIntersect) {
                     unset($possibleSpot[$name][$index]);
                 }
             }
@@ -205,23 +244,26 @@ class MissileController extends Controller
 
         $unSunk = array();
 
-        if(isset($unSunkPos[$key = array_search(2, $unSunkPos)]) && array_count_values($unSunkPos)[2] != 5) {
+        if (isset($unSunkPos[$key = array_search(2, $unSunkPos)]) && array_count_values($unSunkPos)[2] != 5) {
             $unSunk[] = $key;
         }
-        if(isset($unSunkPos[$key = array_search(3, $unSunkPos)]) && array_count_values($unSunkPos)[3] != 4) {
+        if (isset($unSunkPos[$key = array_search(3, $unSunkPos)]) && array_count_values($unSunkPos)[3] != 4) {
             $unSunk[] = $key;
         }
-        if(isset($unSunkPos[$key = array_search(4, $unSunkPos)]) && array_count_values($unSunkPos)[4] != 3) {
+        if (isset($unSunkPos[$key = array_search(4, $unSunkPos)]) && array_count_values($unSunkPos)[4] != 3) {
             $unSunk[] = $key;
         }
-        if(isset($unSunkPos[$key = array_search(5, $unSunkPos)]) && array_count_values($unSunkPos)[5] != 3) {
+        if (isset($unSunkPos[$key = array_search(5, $unSunkPos)]) && array_count_values($unSunkPos)[5] != 3) {
             $unSunk[] = $key;
         }
-        if(isset($unSunkPos[$key = array_search(6, $unSunkPos)]) && array_count_values($unSunkPos)[6] != 2) {
+        if (isset($unSunkPos[$key = array_search(6, $unSunkPos)]) && array_count_values($unSunkPos)[6] != 2) {
             $unSunk[] = $key;
         }
 
-        return array_merge(Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray(), $unSunk);
+        return array_merge(
+            Missile::whereBelongsTo($partie)->where('resultat', 1)->pluck('coordonnées')->toArray(),
+            $unSunk
+        );
     }
 
     /**
@@ -238,19 +280,19 @@ class MissileController extends Controller
             'coordonnées',
         )->toArray();
 
-        if(isset($sunkPos[$key = array_search(2, $sunkPos)]) && array_count_values($sunkPos)[2] != 5) {
+        if (isset($sunkPos[$key = array_search(2, $sunkPos)]) && array_count_values($sunkPos)[2] != 5) {
             unset($sunkPos[$key]);
         }
-        if(isset($sunkPos[$key = array_search(3, $sunkPos)]) && array_count_values($sunkPos)[3] != 4) {
+        if (isset($sunkPos[$key = array_search(3, $sunkPos)]) && array_count_values($sunkPos)[3] != 4) {
             unset($sunkPos[$key]);
         }
-        if(isset($sunkPos[$key = array_search(4, $sunkPos)]) && array_count_values($sunkPos)[4] != 3) {
+        if (isset($sunkPos[$key = array_search(4, $sunkPos)]) && array_count_values($sunkPos)[4] != 3) {
             unset($sunkPos[$key]);
         }
-        if(isset($sunkPos[$key = array_search(5, $sunkPos)]) && array_count_values($sunkPos)[5] != 3) {
+        if (isset($sunkPos[$key = array_search(5, $sunkPos)]) && array_count_values($sunkPos)[5] != 3) {
             unset($sunkPos[$key]);
         }
-        if(isset($sunkPos[$key = array_search(6, $sunkPos)]) && array_count_values($sunkPos)[6] != 2) {
+        if (isset($sunkPos[$key = array_search(6, $sunkPos)]) && array_count_values($sunkPos)[6] != 2) {
             unset($sunkPos[$key]);
         }
 
