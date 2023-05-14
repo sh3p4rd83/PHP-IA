@@ -18,7 +18,7 @@ return new class extends Migration
                 ->references("id")
                 ->on("parties")
                 ->onDelete("cascade");
-            $table->string("coordonnées", 3);
+            $table->string("coordonnées", 4);
             $table->unsignedInteger("resultat")->nullable();
             $table->timestamps();
         });

@@ -271,7 +271,7 @@ class MissileController extends Controller
         foreach ($remainingShip as $ship) {
             $possibleSpot[$ship] = array();
             for ($line = 65; $line < 75; $line++) {
-                for ($col = 1; $col < 11; $col++) {
+                for ($col = 1; $col <= 10; $col++) {
                     $boatLength = self::getBoatSize($ship);
                     // les boucles permettent l'isolation d'un sens, pour permettre d'exclure uniquement une seule orientation.
                     // Vérification de l'implantation d'un bateau en position verticale
@@ -290,7 +290,7 @@ class MissileController extends Controller
                     }
                     // Vérification de l'implantation d'un bateau en position horizontale
                     while (true) {
-                        if ($col + $boatLength - 1 >= 10) {
+                        if ($col + $boatLength - 1 > 10) {
                             break;
                         }
                         for ($b = 0; $b < $boatLength; $b++) {
@@ -304,7 +304,6 @@ class MissileController extends Controller
                 }
             }
         }
-
         return $possibleSpot;
     }
 
